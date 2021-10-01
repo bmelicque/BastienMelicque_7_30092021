@@ -1,5 +1,6 @@
 const express = require('express');
 require('dotenv').config({path: './config/.env'});
+const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 
@@ -14,6 +15,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/api/auth/', authRoutes);
 app.use('/api/user/', userRoutes);

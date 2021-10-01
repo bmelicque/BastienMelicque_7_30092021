@@ -27,7 +27,7 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
         // A user can only update itself. Admins can update anyone
-        if (!(req.body.userId == req.params.id || req.body.userRole == 'admin'))
+        if (!(res.locals.userId == req.params.id || res.locals.userRole == 'admin'))
             return res.status(403).json({ error: "Accès refusé" });
 
         // Checking if the new username isn't already used
