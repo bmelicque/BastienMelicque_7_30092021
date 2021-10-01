@@ -51,20 +51,27 @@ exports.login = async (req, res, next) => {
             return res.status(401).json({ error: 'Utilisateur inexistant' })
 
         // Checking if the password is valid
-        const valid = await bcrypt.compare(req.body.password, user[0].password)
+        const valid = await bcrypt.compare(req.body.password, user.password)
         if (!valid)
             return res.status(401).json({ error: 'Mot de passe incorrect' })
 
-        // Sending a token to the user
-        res.status(200).json({
-            userId: user.id,
-            token: jwt.sign(
-                { userId: user.id, role: user.role },
-                process.env.TOKEN_PRIVATE_KEY,
-                { expiresIn: '48h' }
-            )
+        // Sending token
+        const maxAge = 48 * 86400000;
+        res.cookie('token', jwt.sign(
+            { userId: user.id, role: user.role },
+            process.env.TOKEN_PRIVATE_KEY,
+            { expiresIn: maxAge }
+        ), {
+            httpOnly: true,
+            maxAge: maxAge
         })
+        res.status(200).json({ userId: user.id })
     } catch (err) {
         res.status(500).json({ err });
     }
+}
+
+exports.logout = async (req, res) => {
+    res.cookie('token', null, { maxAge: 1 });
+    res.status(200).json({ message: 'Déconnecté' })
 }
