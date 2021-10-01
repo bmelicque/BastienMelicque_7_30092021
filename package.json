@@ -17,6 +17,7 @@
     "jsonwebtoken": "^8.5.1",
     "mysql2": "^2.3.0",
     "nodemon": "^2.0.13",
-    "promise-mysql": "^5.0.4"
+    "promise-mysql": "^5.0.4",
+    "validator": "^13.6.0"
   }
 }
