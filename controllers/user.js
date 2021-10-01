@@ -5,7 +5,7 @@ exports.userInfo = async (req, res) => {
     try {
         // Finding user in the database
         const sql = `SELECT * FROM users WHERE users.id = ${req.params.id}`;
-        const [user, ...rest] = await (await db).query(sql);
+        const [user] = await (await db).query(sql);
         if (!user)
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
@@ -26,6 +26,10 @@ exports.updateUser = async (req, res) => {
         if (!user)
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
+        // A user can only update itself. Admins can update anyone
+        if (!(req.body.userId == req.params.id || req.body.userRole == 'admin'))
+            return res.status(403).json({ error: "Accès refusé" });
+
         // Checking if the new username isn't already used
         const usernameSQL = `SELECT * FROM users
         WHERE users.id <> "${req.params.id}" AND users.username = "${req.body.username}"`
@@ -39,6 +43,27 @@ exports.updateUser = async (req, res) => {
         WHERE id = ${req.params.id}`;
         await (await db).query(updateSQL);
         res.status(200).json({ message: "Données d'utilisateur modifiées" })
+    } catch (err) {
+        res.status(500).json({ err });
+    }
+}
+
+exports.deleteUser = async (req, res) => {
+    try {
+        // Finding user in the database
+        const findSQL = `SELECT * FROM users WHERE users.id = ${req.params.id}`;
+        const [user, ...rest] = await (await db).query(findSQL);
+        if (!user)
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+        // A user can only delete itself. Admins can delete any profile
+        if (!(req.body.userId == req.params.id || req.body.userRole == 'admin'))
+            return res.status(403).json({ error: "Accès refusé" });
+
+        // Actual deleting of profile
+        const deleteSQL = `DELETE FROM users WHERE id = "${req.params.id}"`
+        await (await db).query(deleteSQL);
+        res.status(200).json({ message: 'Utilisateur supprimé' })
     } catch (err) {
         res.status(500).json({ err });
     }
