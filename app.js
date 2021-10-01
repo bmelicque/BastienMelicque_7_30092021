@@ -1,5 +1,6 @@
 const express = require('express');
 require('dotenv').config({path: './config/.env'});
+const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 
 const app = express();
@@ -14,6 +15,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-app.use('/api/auth/', userRoutes);
+app.use('/api/auth/', authRoutes);
+app.use('/api/user/', userRoutes);
 
 module.exports = app;

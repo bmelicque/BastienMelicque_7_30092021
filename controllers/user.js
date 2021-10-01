@@ -1,64 +1,44 @@
-const { isEmail } = require('validator');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const cryptoJS = require('crypto-js');
 const db = require('../config/db');
 
-
-// On signup, the email is hashed to respect GDPR (no personal data stored on the server)
-// The password is encrypted for security reasons
-exports.signup = async (req, res, next) => {
+// Used to get info on a user 
+exports.userInfo = async (req, res) => {
     try {
-        // Checking if the email is valid
-        if (!isEmail(req.body.email)) return res.status(400).json({ error: 'Adresse email incorrecte' });
+        // Finding user in the database
+        const sql = `SELECT * FROM users WHERE users.id = ${req.params.id}`;
+        const [user, ...rest] = await (await db).query(sql);
+        if (!user)
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-        const hashedEmail = cryptoJS.SHA3(req.body.email).toString();
-
-        // Checking email unicity
-        const emailSQL = `SELECT * FROM users WHERE users.email = '${hashedEmail}'`;
-        const emailIsUnique = await (await db).query(emailSQL);
-        if (emailIsUnique) return res.status(400).json({ error: 'Cet email est déjà utilisé' });
-
-        // Checking username unicity
-        const userSQL = `SELECT * FROM users WHERE users.username = '${req.body.username}'`;
-        const user = await (await db).query(userSQL);
-        if (user) return res.status(400).json({ error: 'Ce pseudo est déjà utilisé' });
-
-        // Actual post to database
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        const sql = `INSERT INTO users (username, email, password) VALUES ('${req.body.username}', '${hashedEmail}', '${hashedPassword}')`;
-        await (await db).query(sql)
-        res.status(201).json({ message: 'Utilisateur créé avec succès' })
+        // Returning user info (except the password)
+        delete user.password;
+        res.status(200).json(user);
     } catch (err) {
-        res.status(500).json({ err })
+        res.status(500).json({ err });
     }
 }
 
-
-// Hashes the provided email to see if it exists in the database
-// Then compares the provided password with the encrypted one in the database
-// On success, provides a secured token to the user
-exports.login = async (req, res, next) => {
+// Updates user info
+exports.updateUser = async (req, res) => {
     try {
-        // Checking if email exists in the database
-        const hashedEmail = cryptoJS.SHA3(req.body.email).toString();
-        const sql = `SELECT * FROM users WHERE users.email = '${hashedEmail}'`;
-        const user = await (await db).query(sql);
-        if (!user) return res.status(401).json({ error: 'Utilisateur inexistant' })
+        // Finding the user in the database
+        const sql = `SELECT * FROM users WHERE users.id = ${req.params.id}`;
+        const [user] = await (await db).query(sql);
+        if (!user)
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-        // Checking if the password is valid
-        const valid = await bcrypt.compare(req.body.password, user[0].password)
-        if (!valid) return res.status(401).json({ error: 'Mot de passe incorrect' })
+        // Checking if the new username isn't already used
+        const usernameSQL = `SELECT * FROM users
+        WHERE users.id <> "${req.params.id}" AND users.username = "${req.body.username}"`
+        const [username] = await (await db).query(usernameSQL);
+        if (username)
+            return res.status(400).json({ error: "Nom d'utilisateur déjà utilisé" })
 
-        // Sending a token to the user
-        res.status(200).json({
-            userId: user[0].id,
-            token: jwt.sign(
-                { userId: user[0].id, role: user[0].role },
-                process.env.TOKEN_PRIVATE_KEY,
-                { expiresIn: '48h' }
-            )
-        })
+        // Updating user info
+        const updateSQL = `UPDATE users
+        SET first_name = "${req.body.firstName}", last_name = "${req.body.lastName}"
+        WHERE id = ${req.params.id}`;
+        await (await db).query(updateSQL);
+        res.status(200).json({ message: "Données d'utilisateur modifiées" })
     } catch (err) {
         res.status(500).json({ err });
     }
