@@ -6,42 +6,51 @@ const cryptoJS = require('crypto-js');
 const zxcvbn = require('zxcvbn');
 
 
+const isInDB = async (field, value) => {
+    const sql = `SELECT * FROM users WHERE users.${field} = ?`;
+    const [isInDB] = await (await db).query(sql, value);
+    return (!!isInDB)
+}
+
+
 // On signup, the email is hashed to respect GDPR (no personal data stored on the server)
 // The password is encrypted for security reasons
-exports.signup = async (req, res, next) => {
+exports.signup = async (req, res) => {
     const { username, email, password } = req.body;
 
     try {
+        let err = {};
         // Checking if the email is valid
         if (!isEmail(email))
-            return res.status(400).json({ error: 'Adresse email incorrecte' });
+            err.email = 'Adresse email incorrecte';
 
         const hashedEmail = cryptoJS.SHA3(email).toString();
 
         // Checking email unicity
-        const emailSQL = `SELECT * FROM users WHERE users.email = '${hashedEmail}'`;
-        const [emailIsUnique] = await (await db).query(emailSQL);
-        if (emailIsUnique)
-            return res.status(400).json({ error: 'Cet email est déjà utilisée' });
+        if (isInDB('email', hashedEmail))
+            err.email = 'Cet email est déjà utilisée';
 
         // Checking username unicity
-        const userSQL = `SELECT * FROM users WHERE users.username = '${username}'`;
-        const [user] = await (await db).query(userSQL);
-        if (user)
-            return res.status(400).json({ error: 'Ce pseudo est déjà utilisé' });
+        if (isInDB('username', username))
+            err.username = 'Ce pseudo est déjà utilisé';
 
         // Checking if the password is strong enough
         const { score } = zxcvbn(password, [username, email]);
         if (score <= 1)
-            return res.status(400).json({ error: 'Ce mot de passe est trop faible. Pensez à utiliser des nombres, des caractères spéciaux ou à le rallonger' })
+            err.password = 'Ce mot de passe est trop faible. Pensez à utiliser des nombres, des caractères spéciaux ou à le rallonger';
+
+        if (err != {})
+            throw err;
 
         // Actual post to database
         const hashedPassword = await bcrypt.hash(password, 10);
-        const sql = `INSERT INTO users (username, email, password) VALUES ('${username}', '${hashedEmail}', '${hashedPassword}')`;
-        await (await db).query(sql)
+        const sql = `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`;
+        await (await db).query(sql, [username, hashedEmail, hashedPassword])
         res.status(201).json({ message: 'Utilisateur créé avec succès' })
     } catch (err) {
-        res.status(500).json({ err })
+        if ('email' in err || 'username' in err || 'password' in err)
+            res.status(400).json({ err })
+        else res.status(500).json({ err })
     }
 }
 
@@ -49,13 +58,10 @@ exports.signup = async (req, res, next) => {
 // Hashes the provided email to see if it exists in the database
 // Then compares the provided password with the encrypted one in the database
 // On success, provides a secured token to the user
-exports.login = async (req, res, next) => {
+exports.login = async (req, res) => {
     try {
         // Checking if email exists in the database
-        const hashedEmail = cryptoJS.SHA3(req.body.email).toString();
-        const sql = `SELECT * FROM users WHERE users.email = '${hashedEmail}'`;
-        const [user] = await (await db).query(sql);
-        if (!user)
+        if (!isInDB('email', hashedEmail))
             return res.status(401).json({ error: 'Utilisateur inexistant' })
 
         // Checking if the password is valid
