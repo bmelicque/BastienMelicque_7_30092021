@@ -7,4 +7,6 @@ const connection = mysql.createConnection({
     database: 'groupomania'
 });
 
+console.log('Connected to MySQL');
+
 module.exports = connection;

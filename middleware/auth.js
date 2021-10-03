@@ -21,7 +21,8 @@ module.exports = async (req, res, next) => {
         res.locals.userRole = user.role;
         next();
     } catch (err) {
-        res.locals.user = null;
+        res.locals.userId = null;
+        res.locals.userRole = null;
         res.cookie('token', null, { maxAge: 1 });
         res.status(403).json({ error: err });
     }
