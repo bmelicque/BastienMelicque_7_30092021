@@ -3,6 +3,7 @@ require('dotenv').config({path: './config/.env'});
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const postsRoutes = require('./routes/posts');
 const db = require('./config/db');
 
 const app = express();
@@ -20,5 +21,6 @@ app.use(cookieParser());
 
 app.use('/api/auth/', authRoutes);
 app.use('/api/user/', userRoutes);
+app.use('/api/posts/', postsRoutes);
 
 module.exports = app;
