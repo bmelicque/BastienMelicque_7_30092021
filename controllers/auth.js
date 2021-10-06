@@ -2,16 +2,17 @@ const db = require('../config/db');
 const { isEmail } = require('validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const cryptoJS = require('crypto-js');
 const zxcvbn = require('zxcvbn');
 
-
-const isInDB = async (field, value) => {
-    const sql = `SELECT * FROM users WHERE users.${field} = ?`;
-    const [isInDB] = await (await db).query(sql, value);
-    return (!!isInDB)
+const findUserByMail = async (email) => {
+    const sql = `SELECT * FROM users WHERE users.email = ?`;
+    const [user] = await (await db).query(sql, email);
+    if (!user) throw {
+        code: 404,
+        message: 'Utilisateur inexistant'
+    }
+    else return user;
 }
-
 
 // On signup, the email is hashed to respect GDPR (no personal data stored on the server)
 // The password is encrypted for security reasons
@@ -19,38 +20,28 @@ exports.signup = async (req, res) => {
     const { username, email, password } = req.body;
 
     try {
-        let err = {};
         // Checking if the email is valid
         if (!isEmail(email))
-            err.email = 'Adresse email incorrecte';
-
-        const hashedEmail = cryptoJS.SHA3(email).toString();
+            throw 'Adresse email invalide';
 
         // Checking email unicity
-        if (isInDB('email', hashedEmail))
-            err.email = 'Cet email est déjà utilisée';
-
-        // Checking username unicity
-        if (isInDB('username', username))
-            err.username = 'Ce pseudo est déjà utilisé';
+        if (findUserByMail(email))
+            throw 'Adresse email invalide';
 
         // Checking if the password is strong enough
         const { score } = zxcvbn(password, [username, email]);
         if (score <= 1)
-            err.password = 'Ce mot de passe est trop faible. Pensez à utiliser des nombres, des caractères spéciaux ou à le rallonger';
-
-        if (err != {})
-            throw err;
+            throw 'Mot de passe invalide (trop faible)';
 
         // Actual post to database
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const sql = `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`;
-        await (await db).query(sql, [username, hashedEmail, hashedPassword])
-        res.status(201).json({ message: 'Utilisateur créé avec succès' })
-    } catch (err) {
-        if ('email' in err || 'username' in err || 'password' in err)
-            res.status(400).json({ err })
-        else res.status(500).json({ err })
+        const hash = await bcrypt.hash(password, 10);
+        const sql = `INSERT INTO users (email, password) VALUES (?, ?)`;
+        await (await db).query(sql, [email, hash]);
+        res.status(201).json({ message: 'Utilisateur créé avec succès' });
+    } catch (error) {
+        if (error.includes('email') || error.includes('mot de passe'))
+            res.status(400).json({ err });
+        else res.status(500).json({ err });
     }
 }
 
@@ -60,14 +51,17 @@ exports.signup = async (req, res) => {
 // On success, provides a secured token to the user
 exports.login = async (req, res) => {
     try {
+        const { email, password } = req.body;
+        
         // Checking if email exists in the database
-        if (!isInDB('email', hashedEmail))
-            return res.status(401).json({ error: 'Utilisateur inexistant' })
+        const user = findUserByMail(email)
+        if (!user)
+            throw 'Identifiant(s) incorrect(s)'
 
         // Checking if the password is valid
-        const valid = await bcrypt.compare(req.body.password, user.password)
+        const valid = await bcrypt.compare(password, user.password)
         if (!valid)
-            return res.status(401).json({ error: 'Mot de passe incorrect' })
+            throw 'Identifiant(s) incorrect(s)'
 
         // Sending token
         const maxAge = 2 * 86400000; // 2 days
@@ -80,8 +74,10 @@ exports.login = async (req, res) => {
             maxAge: maxAge
         })
         res.status(200).json({ message: 'Connecté' })
-    } catch (err) {
-        res.status(500).json({ err });
+    } catch (error) {
+        if (error.includes('Identifiant'))
+            res.status(401).json({ error })
+        else res.status(500).json({ error });
     }
 }
 

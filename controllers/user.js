@@ -1,15 +1,14 @@
 const db = require('../config/db');
-const { errorHandler, checkAuthorization } = require('../utils/functions');
+const bcrypt = require('bcrypt');
+const zxcvbn = require('zxcvbn');
+const { checkAuthorization } = require('../utils/functions');
 
 // Takes an id and return the corresponding user form DB
 // Throws error 404 if not found
 const findUser = async (id) => {
     const sql = `SELECT * FROM users WHERE users.id = ?`;
     const [user] = await (await db).query(sql, id);
-    if (!user) throw {
-        code: 404,
-        message: 'Utilisateur inexistant'
-    }
+    if (!user) res.status(404).json({ error: 'Utilisateur inexistant' })
     else return user;
 }
 
@@ -21,44 +20,54 @@ exports.userInfo = async (req, res) => {
         delete user.password;
         res.status(200).json(user);
     } catch (err) {
-        errorHandler(err, res);
+        res.status(500).json({ error })
     }
 }
 
 // Updates user info
 exports.updateUser = async (req, res) => {
     try {
-        const { username, firstName, lastName } = req.body;
+        const { email, password } = req.body;
         const { id } = req.params;
 
-        await findUser(req.params.id); // Ensures that the user is still in the DB
         checkAuthorization(res, req.params.id)
 
-        // Checking if the new username isn't already used
-        const usernameSQL = `SELECT * FROM users
-        WHERE users.id <> ? AND users.username = ?`
-        const [usernameIsUsed] = await (await db).query(usernameSQL, [id, username]);
-        if (usernameIsUsed)
-            return res.status(400).json({ error: "Nom d'utilisateur déjà utilisé" })
+        // Checking if the new email isn't already used
+        const emailSQL = `SELECT * FROM users
+        WHERE users.id <> ? AND users.email = ?`
+        const [emailIsUsed] = await (await db).query(emailSQL, [id, email]);
+        if (emailIsUsed)
+            throw "Cette adresse email est déjà utilisée";
+
+        // Checking if the password is strong enough
+        const { score } = zxcvbn(password, [username, email]);
+        if (score <= 1)
+            throw 'Mot de passe invalide (trop faible)';
+
+        const hash = await bcrypt.hash(password, 10);
 
         // Updating user info
-        const updateSQL = `UPDATE users SET first_name = ?, last_name = ?, username = ? WHERE id = ?`;
-        await (await db).query(updateSQL, [firstName, lastName, username, id]);
+        const updateSQL = `UPDATE users SET email = ?, password = ? WHERE id = ?`;
+        await (await db).query(updateSQL, [email, hash, id]);
         res.status(200).json({ message: "Données d'utilisateur modifiées" })
-    } catch (err) {
-        errorHandler(err, res);
+    } catch (error) {
+        if (error.includes('email') || error.includes('passe'))
+            res.status(400).json({ error });
+        else res.status(500).json({ error });
     }
 }
 
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        await findUser(id); // Ensures that the user is still in the DB
         checkAuthorization(res, id);
+        const user = findUser(id);
+        if (user.role === 'admin')
+            res.status(403).json({ error: 'Requête non autorisée' });
         const sql = `DELETE FROM users WHERE id = ?`
         await (await db).query(sql, id);
         res.status(200).json({ message: 'Utilisateur supprimé' })
-    } catch (err) {
-        errorHandler(err, res);
+    } catch (error) {
+        res.status(500).json({ error });
     }
 }

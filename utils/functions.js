@@ -8,9 +8,6 @@ exports.errorHandler = (error, res) => {
 
 exports.checkAuthorization = (res, userId) => {
     if (userId != res.locals.userId || res.locals.userRole != 'admin')
-        throw {
-            code: 403,
-            message: "Vous n'êtes pas autorisés à accéder à cette ressource"
-        }
+        res.status(403).json({ error: 'Requête non autorisée' })
     else return 0;
 }
