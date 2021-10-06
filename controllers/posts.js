@@ -4,7 +4,7 @@ const { checkAuthorization } = require('../utils/functions');
 const findPost = async (postId) => {
     const sql = `SELECT * FROM posts WHERE id = ?`;
     const [post] = await (await db).query(sql, postId);
-    if (!post) res.status(404).json({ error: 'Post inexistant !' });
+    if (!post) throw 'POST_NOT_FOUND';
     else return post;
 }
 
@@ -42,7 +42,8 @@ exports.editPost = async (req, res) => {
         await (await db).query(sql, [req.body.text, post.id]);
         res.status(200).json({ message: 'Post modifié' });
     } catch (error) {
-        res.status(500).json({ error });
+        const { code, message } = errorHandler(error);
+        res.status(code).json({ message });
     }
 }
 
@@ -78,6 +79,7 @@ exports.likePost = async (req, res) => {
         await (await db).query(sql, [usersLiked.join(' '), post.id]);
         res.status(200).json({ usersLiked });
     } catch (error) {
-        res.status(500).json({ error });
+        const { code, message } = errorHandler(error);
+        res.status(code).json({ message });
     }
 }

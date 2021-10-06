@@ -7,31 +7,27 @@ const zxcvbn = require('zxcvbn');
 const findUserByMail = async (email) => {
     const sql = `SELECT * FROM users WHERE users.email = ?`;
     const [user] = await (await db).query(sql, email);
-    if (!user) throw {
-        code: 404,
-        message: 'Utilisateur inexistant'
-    }
-    else return user;
+    return user;
 }
 
 // On signup, the email is hashed to respect GDPR (no personal data stored on the server)
 // The password is encrypted for security reasons
 exports.signup = async (req, res) => {
-    const { username, email, password } = req.body;
+    const { email, password } = req.body;
 
     try {
         // Checking if the email is valid
         if (!isEmail(email))
-            throw 'Adresse email invalide';
+            throw 'INVALID_EMAIL';
 
         // Checking email unicity
-        if (findUserByMail(email))
-            throw 'Adresse email invalide';
+        if (await findUserByMail(email))
+            throw 'INVALID_EMAIL';
 
         // Checking if the password is strong enough
-        const { score } = zxcvbn(password, [username, email]);
+        const { score } = zxcvbn(password, email);
         if (score <= 1)
-            throw 'Mot de passe invalide (trop faible)';
+            throw 'INVALID_PASSWORD';
 
         // Actual post to database
         const hash = await bcrypt.hash(password, 10);
@@ -39,9 +35,8 @@ exports.signup = async (req, res) => {
         await (await db).query(sql, [email, hash]);
         res.status(201).json({ message: 'Utilisateur créé avec succès' });
     } catch (error) {
-        if (error.includes('email') || error.includes('mot de passe'))
-            res.status(400).json({ err });
-        else res.status(500).json({ err });
+        const { code, message } = errorHandler(error);
+        res.status(code).json({ message });
     }
 }
 
@@ -52,16 +47,16 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        
+
         // Checking if email exists in the database
-        const user = findUserByMail(email)
+        const user = await findUserByMail(email)
         if (!user)
-            throw 'Identifiant(s) incorrect(s)'
+            throw 'INCORRECT_LOGIN';
 
         // Checking if the password is valid
         const valid = await bcrypt.compare(password, user.password)
         if (!valid)
-            throw 'Identifiant(s) incorrect(s)'
+            throw 'INCORRECT_LOGIN';
 
         // Sending token
         const maxAge = 2 * 86400000; // 2 days
@@ -73,11 +68,10 @@ exports.login = async (req, res) => {
             httpOnly: true,
             maxAge: maxAge
         })
-        res.status(200).json({ message: 'Connecté' })
+        res.status(200).json({ message: 'Connecté' });
     } catch (error) {
-        if (error.includes('Identifiant'))
-            res.status(401).json({ error })
-        else res.status(500).json({ error });
+        const { code, message } = errorHandler(error);
+        res.status(code).json({ message });
     }
 }
 

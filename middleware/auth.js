@@ -17,13 +17,13 @@ module.exports = async (req, res, next) => {
             throw 'ID utilisateur non valable'
 
         // Saving the ID and role locally
-        res.locals.userId = user.userId;
+        res.locals.userId = user.id;
         res.locals.userRole = user.role;
         next();
-    } catch (err) {
+    } catch (error) {
         res.locals.userId = null;
         res.locals.userRole = null;
         res.cookie('token', null, { maxAge: 1 });
-        res.status(403).json({ error: err });
+        res.status(403).json({ error });
     }
 }
