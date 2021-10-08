@@ -30,6 +30,11 @@ exports.errorHandler = (error) => {
                 code: 404,
                 message: 'Post inexistant'
             }
+        case 'COMMENT_NOT_FOUND':
+            return {
+                code: 404,
+                message: 'Commentaire inexistant'
+            }
         default:
             return {
                 code: 500,

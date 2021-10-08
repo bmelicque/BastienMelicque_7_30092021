@@ -62,7 +62,8 @@ exports.deletePost = async (req, res) => {
         await (await db).query(sql, postId);
         res.status(200).json({ message: 'Post supprimé' });
     } catch (error) {
-        res.status(500).json({ error });
+        const { code, message } = errorHandler(error);
+        res.status(code).json({ message });
     }
 }
 

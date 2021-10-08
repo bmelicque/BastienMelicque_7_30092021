@@ -3,6 +3,7 @@ const { isEmail } = require('validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const zxcvbn = require('zxcvbn');
+const {errorHandler} = require('../utils/functions');
 
 const findUserByMail = async (email) => {
     const sql = `SELECT * FROM users WHERE users.email = ?`;
