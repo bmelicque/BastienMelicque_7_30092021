@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const fs = require('fs').promises;
 const { checkAuthorization } = require('../utils/functions');
 
 const findPost = async (postId) => {
@@ -20,10 +21,11 @@ exports.getAllPosts = async (req, res) => {
 
 exports.createPost = async (req, res) => {
     try {
-        const { userId, text, media } = req.body;
+        const mediaUrl = (req.file) ? `${req.protocol}://${req.get('host')}/images/${req.file.filename}` : null;
+        const { userId, text } = (req.file) ? JSON.parse(req.body.post) : req.body;
         const sql = `INSERT INTO posts (userId, text, media) VALUES (?, ?, ?)`;
-        await (await db).query(sql, [userId, text, media]);
-        res.status(201).json({ message: 'Post envoyé' });
+        await (await db).query(sql, [userId, text, mediaUrl]);
+        res.status(201).json({ message: 'Post enregistré' });
     } catch (error) {
         res.status(500).json({ error });
     }
@@ -56,6 +58,11 @@ exports.deletePost = async (req, res) => {
 
         // Checking if the user has authorization to edit the post
         checkAuthorization(res, post.userId);
+
+        if (post.mediaUrl) {
+            const filename = post.mediaUrl.split('/images/')[1];
+            await fs.unlink(`images/${filename}`);
+        }
 
         // Deleting from database
         const sql = `DELETE FROM posts WHERE id = ?`;

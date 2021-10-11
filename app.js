@@ -1,6 +1,7 @@
 const express = require('express');
 require('dotenv').config({path: './config/.env'});
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const postsRoutes = require('./routes/posts');
@@ -20,6 +21,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(cookieParser());
 
+app.use('/images', express.static(path.join(__dirname, '/images')));
 app.use('/api/auth/', authRoutes);
 app.use('/api/user/', userRoutes);
 app.use('/api/posts/', postsRoutes);
