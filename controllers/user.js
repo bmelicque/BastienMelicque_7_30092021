@@ -16,9 +16,19 @@ const findUser = async (id) => {
 exports.userInfo = async (req, res) => {
     try {
         const user = await findUser(req.params.id)
-        delete user.email;
         delete user.password;
         res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ error })
+    }
+}
+
+exports.getAllUsers = async (req, res) => {
+    try {
+        const sql = 'SELECT * FROM users';
+        const users = await (await db).query(sql);
+        users.forEach(user => delete user.password);
+        res.status(200).json({ users });
     } catch (error) {
         res.status(500).json({ error })
     }
