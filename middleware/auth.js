@@ -5,7 +5,7 @@ const db = require('../config/db');
 module.exports = async (req, res, next) => {
     try {
         // Checking if the user has a token
-        const token = req.cookies.token;
+        const token = req.headers.authorization.split(' ')[1];
         if (!token)
             throw 'Requête non authentifiée'
 

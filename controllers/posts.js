@@ -12,8 +12,8 @@ const findPost = async (postId) => {
 exports.getAllPosts = async (req, res) => {
     try {
         const sql = `SELECT * FROM posts ORDER BY date DESC`;
-        const data = await (await db).query(sql);
-        res.status(200).json({ data });
+        const posts = await (await db).query(sql);
+        res.status(200).json({ posts });
     } catch (error) {
         res.status(500).json({ error });
     }

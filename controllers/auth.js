@@ -3,7 +3,7 @@ const { isEmail } = require('validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const zxcvbn = require('zxcvbn');
-const {errorHandler} = require('../utils/functions');
+const { errorHandler } = require('../utils/functions');
 
 const findUserByMail = async (email) => {
     const sql = `SELECT * FROM users WHERE users.email = ?`;
@@ -61,19 +61,16 @@ exports.login = async (req, res) => {
 
         // Sending token
         const maxAge = 2 * 86400000; // 2 days
-        res.cookie('token', jwt.sign(
-            { userId: user.id, role: user.role },
-            process.env.TOKEN_PRIVATE_KEY,
-            { expiresIn: maxAge }
-        ), {
-            httpOnly: true,
-            maxAge: maxAge
-        })
-        res.status(200).json({ message: 'Connecté' });
-    } catch (error) {
-        const { code, message } = errorHandler(error);
-        res.status(code).json({ message });
-    }
+        res.status(200).json({
+            token: jwt.sign(
+                { userId: user.id, role: user.role },
+                process.env.TOKEN_PRIVATE_KEY,
+                { expiresIn: maxAge }
+            )});
+} catch (error) {
+    const { code, message } = errorHandler(error);
+    res.status(code).json({ message });
+}
 }
 
 exports.logout = async (req, res) => {

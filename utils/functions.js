@@ -13,7 +13,7 @@ exports.errorHandler = (error) => {
         case 'INCORRECT_LOGIN':
             return {
                 code: 401,
-                message: 'Indentifiant(s) incorrect(s)'
+                message: 'Identifiant(s) incorrect(s)'
             }
         case 'UNAUTHORIZED':
             return {
