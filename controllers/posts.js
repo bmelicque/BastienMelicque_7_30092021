@@ -22,11 +22,16 @@ exports.getAllPosts = async (req, res) => {
 exports.createPost = async (req, res) => {
     try {
         const mediaUrl = (req.file) ? `${req.protocol}://${req.get('host')}/images/${req.file.filename}` : null;
-        const { userId, text } = (req.file) ? JSON.parse(req.body.post) : req.body;
-        const sql = `INSERT INTO posts (userId, text, media) VALUES (?, ?, ?)`;
+        console.log('mediaUrl = ', mediaUrl);
+        const { text } = (req.file) ? JSON.parse(req.body.post) : req.body;
+        console.log('text = ', text);
+        const { userId } = res.locals;
+        console.log('userId = ', userId);
+        const sql = `INSERT INTO posts (userId, text, mediaUrl) VALUES (?, ?, ?)`;
         await (await db).query(sql, [userId, text, mediaUrl]);
         res.status(201).json({ message: 'Post enregistré' });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ error });
     }
 }
