@@ -22,7 +22,7 @@ exports.getAllPosts = async (req, res) => {
 exports.createPost = async (req, res) => {
     try {
         const mediaUrl = (req.file) ? `${req.protocol}://${req.get('host')}/images/${req.file.filename}` : null;
-        const { text } = (req.file) ? JSON.parse(req.body.post) : req.body;
+        const { text } = req.body;
         const { userId } = res.locals;
         const sql = `INSERT INTO posts (userId, text, mediaUrl) VALUES (?, ?, ?)`;
         await (await db).query(sql, [userId, text, mediaUrl]);
