@@ -77,7 +77,8 @@ exports.deletePost = async (req, res) => {
 
 exports.likePost = async (req, res) => {
     try {
-        const { userId, like } = req.body;
+        const { like } = req.body;
+        const { userId } = res.locals;
         const post = await findPost(req.params.id);
 
         let usersLiked = post.usersLiked ? post.usersLiked.split(' ') : [];
