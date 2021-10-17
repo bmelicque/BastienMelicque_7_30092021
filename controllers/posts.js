@@ -1,6 +1,6 @@
 const db = require('../config/db');
 const fs = require('fs').promises;
-const { checkAuthorization } = require('../utils/functions');
+const { checkAuthorization, errorHandler } = require('../utils/functions');
 
 const findPost = async (postId) => {
     const sql = `SELECT * FROM posts WHERE id = ?`;
@@ -25,8 +25,8 @@ exports.createPost = async (req, res) => {
         const { text } = req.body;
         const { userId } = res.locals;
         const sql = `INSERT INTO posts (userId, text, mediaUrl) VALUES (?, ?, ?)`;
-        await (await db).query(sql, [userId, text, mediaUrl]);
-        res.status(201).json({ message: 'Post enregistré' });
+        const { insertId } = await (await db).query(sql, [userId, text, mediaUrl]);
+        res.status(201).json(await findPost(insertId));
     } catch (error) {
         res.status(500).json({ error });
     }

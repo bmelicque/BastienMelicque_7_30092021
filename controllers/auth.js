@@ -63,6 +63,7 @@ exports.login = async (req, res) => {
         const maxAge = 2 * 86400000; // 2 days
         res.status(200).json({
             userId: user.id,
+            userRole: user.role,
             token: jwt.sign(
                 { userId: user.id, role: user.role },
                 process.env.TOKEN_PRIVATE_KEY,

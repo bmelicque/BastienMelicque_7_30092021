@@ -12,8 +12,8 @@ const findComment = async (commentId) => {
 exports.getComments = async (req, res) => {
     try {
         const sql = `SELECT * FROM comments WHERE postId = ? ORDER BY date DESC`;
-        const data = await (await db).query(sql, req.params.postId);
-        res.status(200).json({ data });
+        const comments = await (await db).query(sql, req.params.postId);
+        res.status(200).json({ comments });
     } catch (error) {
         const { code, message } = errorHandler(error);
         res.status(code).json({ message });
@@ -22,11 +22,13 @@ exports.getComments = async (req, res) => {
 
 exports.createComment = async (req, res) => {
     try {
-        const { postId, userId, text } = req.body;
+        const { text } = req.body;
+        const { postId } = req.params;
+        const { userId } = res.locals;
         const sql = `INSERT INTO comments (postId, userId, text) VALUES (?, ?, ?)`;
-        await (await db).query(sql, [postId, userId, text]);
-        res.status(201).json({ message: 'Commentaire enregistré avec succès' });
-    } catch (err) {
+        const { insertId } = await (await db).query(sql, [postId, userId, text]);
+        res.status(201).json(await findComment(insertId));
+    } catch (error) {
         const { code, message } = errorHandler(error);
         res.status(code).json({ message });
     }
@@ -51,7 +53,7 @@ exports.editComment = async (req, res) => {
 
 exports.deleteComment = async (req, res) => {
     try {
-        const {commentId} = req.params;
+        const { commentId } = req.params;
 
         const comment = await findComment(commentId);
 
