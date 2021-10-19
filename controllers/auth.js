@@ -36,6 +36,7 @@ exports.signup = async (req, res) => {
         await (await db).query(sql, [email, hash]);
         res.status(201).json({ message: 'Utilisateur créé avec succès' });
     } catch (error) {
+        console.log(error);
         const { code, message } = errorHandler(error);
         res.status(code).json({ message });
     }
@@ -68,14 +69,10 @@ exports.login = async (req, res) => {
                 { userId: user.id, role: user.role },
                 process.env.TOKEN_PRIVATE_KEY,
                 { expiresIn: maxAge }
-            )});
-} catch (error) {
-    const { code, message } = errorHandler(error);
-    res.status(code).json({ message });
-}
-}
-
-exports.logout = async (req, res) => {
-    res.cookie('token', null, { maxAge: 1 });
-    res.status(200).json({ message: 'Déconnecté' })
+            )
+        });
+    } catch (error) {
+        const { code, message } = errorHandler(error);
+        res.status(code).json({ message });
+    }
 }

@@ -65,9 +65,12 @@ exports.deletePost = async (req, res) => {
             await fs.unlink(`images/${filename}`);
         }
 
-        // Deleting from database
-        const sql = `DELETE FROM posts WHERE id = ?`;
+        // Deleting the post as well as the associated comments
+        const sql = `DELETE posts, comments FROM posts
+        LEFT JOIN comments ON posts.id = comments.postId
+        WHERE posts.id = ?`;
         await (await db).query(sql, postId);
+        
         res.status(200).json({ message: 'Post supprimé' });
     } catch (error) {
         const { code, message } = errorHandler(error);
