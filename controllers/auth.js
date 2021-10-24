@@ -36,7 +36,6 @@ exports.signup = async (req, res) => {
         await (await db).query(sql, [email, hash]);
         res.status(201).json({ message: 'Utilisateur créé avec succès' });
     } catch (error) {
-        console.log(error);
         const { code, message } = errorHandler(error);
         res.status(code).json({ message });
     }

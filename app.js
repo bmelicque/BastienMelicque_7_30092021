@@ -6,7 +6,6 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const postsRoutes = require('./routes/posts');
 const commentsRoutes = require('./routes/comments');
-const db = require('./config/db');
 
 const app = express();
 
